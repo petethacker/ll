@@ -18,7 +18,7 @@ type file_list struct {
 
 func get_cwd() string {
 	dir, _ := os.Getwd()
-	return strings.Replace(dir, " ", "\\ ", -1)
+	return dir
 }
 
 func size_commaed_old(old_size int64) string {
