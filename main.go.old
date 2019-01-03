@@ -1,0 +1,102 @@
+package main
+
+import (
+	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+)
+
+func get_bin_dir() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return dir
+}
+
+func get_cwd() string {
+	dir, _ := os.Getwd()
+	return strings.Replace(dir, " ", "\\ ", -1)
+}
+
+func folder_check(filename string) bool {
+	fi, err := os.Stat("./" + filename)
+	if err != nil {
+		panic(err)
+	}
+	if fi.IsDir() {
+		fmt.Println("it's a directory")
+	} else {
+		fmt.Println("it's not a directory")
+	}
+	return true
+}
+
+func size_commaed(size string) string {
+	if len(size) < 4 {
+		return size
+	}
+
+	var commaed string
+	index := 1
+	for i := len(size) - 1; i >= 0; i-- {
+		commaed = string(size[i]) + commaed
+		if index > 2 {
+			commaed = "," + commaed
+			index = 1
+		} else {
+			index += 1
+		}
+	}
+	return commaed
+}
+
+func format_size(filename string, size int64, isdir bool) string {
+	max_size := len("999,999,999,999,999") // 19
+	size_stringed := size_commaed(strconv.Itoa(int(size)))
+
+	if isdir == true {
+		return strings.Repeat(" ", max_size-len("<DIR>")) + "<DIR>"
+	}
+
+	if len(size_stringed) > max_size {
+		return "   Unsupported size"
+	} else {
+		max_size = max_size - len(size_stringed)
+		return strings.Repeat(" ", max_size) + size_stringed
+	}
+}
+
+func format_string(filename string, size int64, isdir bool, mod_time string) string {
+	max_size := 60
+	if len(filename) > max_size {
+		filename = filename[:max_size-2] + "~~"
+	} else {
+		max_size = max_size - len(filename)
+		strings.Repeat(" ", max_size)
+		filename = filename + strings.Repeat(" ", max_size)
+	}
+	return mod_time + "\t" + format_size(filename, size, isdir) + " " + filename
+}
+
+func main() {
+	working_path := "."
+	if len(os.Args) > 1 {
+		working_path = os.Args[1]
+	}
+
+	files, err := ioutil.ReadDir(working_path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("")
+	for _, f := range files {
+		//fmt.Println(f.ModTime().String()[:19])
+		fmt.Println(format_string(f.Name(), f.Size(), f.IsDir(), f.ModTime().String()[:19]))
+	}
+}
