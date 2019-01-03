@@ -73,11 +73,13 @@ func size_commaed(old_size int64) string {
 }
 
 func main() {
-	var largest_size int = 7
+	var largest_size int = 4
 	var total_size int64 = 0
 	var size string
 	var total_files int = 0
 	var total_dirs int = 0
+	var total_links int = 0
+	var bonus_spacing int = 2
 
 	working_path := "."
 	if len(os.Args) > 1 {
@@ -112,6 +114,8 @@ func main() {
 		if f.Size() == 0 {
 			if symlink_check(path.Join(working_path, f.Name())) == true {
 				s.symlink = true
+				total_links += 1
+				bonus_spacing = 7
 			}
 		}
 
@@ -121,16 +125,16 @@ func main() {
 	fmt.Println("")
 	for i := range storage {
 		if i.isDir == true {
-			size = "<DIR>     " + strings.Repeat(" ", largest_size)
+			size = "<DIR>" + strings.Repeat(" ", largest_size+bonus_spacing)
 		} else if i.symlink == true {
-			size = "<JUNCTION>" + strings.Repeat(" ", largest_size)
+			size = "<JUNCTION>" + strings.Repeat(" ", largest_size+bonus_spacing-5)
 			link, err := os.Readlink(path.Join(working_path, i.name))
 			if err != nil {
 				log.Fatal(err)
 			}
 			i.name = i.name + " => " + link
 		} else {
-			size = strings.Repeat(" ", largest_size-len(i.size)+len("<DIR>     ")) + i.size
+			size = strings.Repeat(" ", largest_size-len(i.size)+len("<DIR>")+bonus_spacing) + i.size
 		}
 		fmt.Println(i.modTime + "  " + size + "  " + i.name)
 	}
