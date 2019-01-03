@@ -85,11 +85,12 @@ func main() {
 	if len(os.Args) > 1 {
 		working_path = os.Args[1]
 	}
-
 	if working_path == "." {
 		working_path = get_cwd()
 	}
-
+	if working_path[len(working_path)-1:] != "/" || working_path[len(working_path)-1:] != "\\" {
+		working_path = working_path + "/"
+	}
 	files, err := ioutil.ReadDir(working_path)
 	if err != nil {
 		log.Fatal(err)
@@ -130,7 +131,7 @@ func main() {
 			size = "<JUNCTION>" + strings.Repeat(" ", largest_size+bonus_spacing-5)
 			link, err := os.Readlink(path.Join(working_path, i.name))
 			if err != nil {
-				log.Fatal(err)
+				continue
 			}
 			i.name = i.name + " => " + link
 		} else {
