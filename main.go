@@ -80,20 +80,37 @@ func main() {
 	var total_dirs int = 0
 	var total_links int = 0
 	var bonus_spacing int = 2
+	var working_path_target string = ""
 
+	// check the args for a working path. we need to move this to some args processing once we start adding more features.
 	working_path := "."
 	if len(os.Args) > 1 {
 		working_path = os.Args[1]
 	}
+	// if no path is specified we get the current working directory so that we can print the path rather than just a "."
 	if working_path == "." {
 		working_path = get_cwd()
 	}
-	if working_path[len(working_path)-1:] != "/" || working_path[len(working_path)-1:] != "\\" {
+	// when on windows searching the path c: would raise an error. so we now add a "/" onto the path.
+	if working_path[len(working_path)-1:] == ":" {
 		working_path = working_path + "/"
 	}
+	// bit of stuff for consistancy.
+	working_path = strings.Replace(working_path, "\\", "/", -1)
+
+	if symlink_check(working_path) == true {
+		link_path, err := os.Readlink(working_path)
+		if err != nil {
+			fmt.Println(working_path + " is a symlink but we failed to get the source path.")
+			os.Exit(1)
+		}
+		working_path_target = link_path
+	}
+
 	files, err := ioutil.ReadDir(working_path)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(working_path + " is not a valid directory.")
+		os.Exit(1)
 	}
 
 	storage := map[file_list]bool{}
@@ -109,15 +126,14 @@ func main() {
 		s.isDir = f.IsDir()
 		if s.isDir == true {
 			total_dirs += 1
-		} else {
-			total_files += 1
-		}
-		if f.Size() == 0 {
+		} else if f.Size() == 0 {
 			if symlink_check(path.Join(working_path, f.Name())) == true {
 				s.symlink = true
 				total_links += 1
 				bonus_spacing = 7
 			}
+		} else {
+			total_files += 1
 		}
 
 		storage[*s] = true
@@ -140,7 +156,18 @@ func main() {
 		fmt.Println(i.modTime + "  " + size + "  " + i.name)
 	}
 	fmt.Println("")
-	fmt.Println(strings.Repeat(" ", 14) + "Path - " + working_path)
-	fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_dirs) + " Dir(s)")
-	fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_files) + " File(s)\t\t" + size_commaed(total_size) + " bytes")
+	path_string := strings.Repeat(" ", 14) + "Path\t" + working_path
+	if len(working_path_target) > 0 {
+		path_string = path_string + " => " + working_path_target
+	}
+	fmt.Println(path_string)
+	if total_dirs > 0 {
+		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_dirs) + " Dir(s)")
+	}
+	if total_links > 0 {
+		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_links) + " Symlink(s)")
+	}
+	if total_files > 0 {
+		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_files) + " File(s)\t\t" + size_commaed(total_size) + " bytes")
+	}
 }
