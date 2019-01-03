@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 )
@@ -14,11 +15,24 @@ type file_list struct {
 	size    string
 	modTime string
 	isDir   bool
+	symlink bool
 }
 
 func get_cwd() string {
 	dir, _ := os.Getwd()
 	return dir
+}
+
+func symlink_check(path string) bool {
+	fi, err := os.Lstat(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	switch mode := fi.Mode(); {
+	case mode&os.ModeSymlink != 0:
+		return true
+	}
+	return false
 }
 
 func size_commaed_old(old_size int64) string {
@@ -95,15 +109,28 @@ func main() {
 		} else {
 			total_files += 1
 		}
+		if f.Size() == 0 {
+			if symlink_check(path.Join(working_path, f.Name())) == true {
+				s.symlink = true
+			}
+		}
+
 		storage[*s] = true
 	}
 
 	fmt.Println("")
 	for i := range storage {
 		if i.isDir == true {
-			size = "<DIR>" + strings.Repeat(" ", largest_size)
+			size = "<DIR>     " + strings.Repeat(" ", largest_size)
+		} else if i.symlink == true {
+			size = "<JUNCTION>" + strings.Repeat(" ", largest_size)
+			link, err := os.Readlink(path.Join(working_path, i.name))
+			if err != nil {
+				log.Fatal(err)
+			}
+			i.name = i.name + " => " + link
 		} else {
-			size = strings.Repeat(" ", largest_size-len(i.size)+len("<DIR>")) + i.size
+			size = strings.Repeat(" ", largest_size-len(i.size)+len("<DIR>     ")) + i.size
 		}
 		fmt.Println(i.modTime + "  " + size + "  " + i.name)
 	}
