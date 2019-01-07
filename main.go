@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,6 +10,9 @@ import (
 	"strconv"
 	"strings"
 )
+
+var recursive = flag.Bool("s", false, "Recurse subdirectories")
+var help = flag.Bool("h", false, "Help")
 
 type file_list struct {
 	name    string
@@ -72,7 +76,26 @@ func size_commaed(old_size int64) string {
 	return commaed
 }
 
+func help_output() {
+	fmt.Println("Lists all files in a directory")
+	fmt.Println()
+	fmt.Println("ll <commands> <path to list>")
+	fmt.Println()
+	fmt.Println("  <Comamnds>")
+	fmt.Println("  -s : Include subdirectories")
+	//fmt.Println("  -sp : Pause after each directory")
+	fmt.Println("  -h : Help menu")
+
+}
+
 func main() {
+	flag.Parse()
+
+	if *help == true {
+		help_output()
+		os.Exit(0)
+	}
+
 	var largest_size int = 4
 	var total_size int64 = 0
 	var size string
@@ -81,11 +104,12 @@ func main() {
 	var total_links int = 0
 	var bonus_spacing int = 2
 	var working_path_target string = ""
+	var all_total_size int64 = 0
 
 	// check the args for a working path. we need to move this to some args processing once we start adding more features.
 	working_path := "."
 	if len(os.Args) > 1 {
-		working_path = os.Args[1]
+		working_path = os.Args[len(os.Args)-1]
 	}
 	// if no path is specified we get the current working directory so that we can print the path rather than just a "."
 	if working_path == "." {
@@ -169,5 +193,8 @@ func main() {
 	}
 	if total_files > 0 {
 		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_files) + " File(s)\t\t" + size_commaed(total_size) + " bytes")
+	}
+	if *recursive == true { // doesnt do anything yet
+		fmt.Println(all_total_size)
 	}
 }
