@@ -222,6 +222,16 @@ func does_path_exist(working_path string) bool {
 	return false
 }
 
+func remove_args() []string {
+	var newArgs []string
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, "-") == false {
+			newArgs = append(newArgs, arg)
+		}
+	}
+	return newArgs
+}
+
 func main() {
 	flag.Parse()
 
@@ -229,6 +239,8 @@ func main() {
 		help_output()
 		os.Exit(0)
 	}
+
+	os.Args = remove_args()
 
 	//var all_total_size int64 = 0
 
