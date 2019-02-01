@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -88,14 +90,12 @@ func help_output() {
 
 }
 
-func main() {
-	flag.Parse()
+func pause() {
+	fmt.Print("Press 'Enter' to continue...")
+	bufio.NewReader(os.Stdin).ReadBytes('\n')
+}
 
-	if *help == true {
-		help_output()
-		os.Exit(0)
-	}
-
+func list_path(working_path string) int64 {
 	var largest_size int = 4
 	var total_size int64 = 0
 	var size string
@@ -104,23 +104,6 @@ func main() {
 	var total_links int = 0
 	var bonus_spacing int = 2
 	var working_path_target string = ""
-	var all_total_size int64 = 0
-
-	// check the args for a working path. we need to move this to some args processing once we start adding more features.
-	working_path := "."
-	if len(os.Args) > 1 {
-		working_path = os.Args[len(os.Args)-1]
-	}
-	// if no path is specified we get the current working directory so that we can print the path rather than just a "."
-	if working_path == "." {
-		working_path = get_cwd()
-	}
-	// when on windows searching the path c: would raise an error. so we now add a "/" onto the path.
-	if working_path[len(working_path)-1:] == ":" {
-		working_path = working_path + "/"
-	}
-	// bit of stuff for consistancy.
-	working_path = strings.Replace(working_path, "\\", "/", -1)
 
 	if symlink_check(working_path) == true {
 		link_path, err := os.Readlink(working_path)
@@ -194,6 +177,55 @@ func main() {
 	if total_files > 0 {
 		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_files) + " File(s)\t\t" + size_commaed(total_size) + " bytes")
 	}
+	return total_size
+}
+
+func get_directories(working_path string) []string {
+	directories := []string{}
+	if *recursive == true {
+		filepath.Walk(working_path, func(path string, f os.FileInfo, err error) error {
+			if f.IsDir() == true {
+				directories = append(directories, path.Join(working_path, f.Name()))
+			}
+			return nil
+		})
+	} else {
+		directories = append(directories, working_path)
+	}
+	return directories
+}
+
+func main() {
+	flag.Parse()
+
+	if *help == true {
+		help_output()
+		os.Exit(0)
+	}
+
+	var all_total_size int64 = 0
+
+	// check the args for a working path. we need to move this to some args processing once we start adding more features.
+	working_path := "."
+	if len(os.Args) > 1 {
+		working_path = os.Args[len(os.Args)-1]
+	}
+	// if no path is specified we get the current working directory so that we can print the path rather than just a "."
+	if working_path == "." {
+		working_path = get_cwd()
+	}
+	// when on windows searching the path c: would raise an error. so we now add a "/" onto the path.
+	if working_path[len(working_path)-1:] == ":" {
+		working_path = working_path + "/"
+	}
+	// bit of stuff for consistancy.
+	working_path = strings.Replace(working_path, "\\", "/", -1)
+
+	directories := get_directories(working_path)
+	for _, directory := range directories {
+		list_path(directory)
+	}
+
 	if *recursive == true { // doesnt do anything yet
 		fmt.Println(all_total_size)
 	}
