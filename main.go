@@ -8,13 +8,15 @@ import (
 	"log"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 )
 
 var recursive = flag.Bool("s", false, "Recurse subdirectories")
 var help = flag.Bool("h", false, "Help")
+var xd = flag.Bool("xd", true, "Exclude Directories")
+var xf = flag.Bool("xf", true, "Exclude Files")
+var xs = flag.Bool("xs", true, "Exclude Symlinks")
 
 type file_list struct {
 	name    string
@@ -84,9 +86,12 @@ func help_output() {
 	fmt.Println("ll <commands> <path to list>")
 	fmt.Println()
 	fmt.Println("  <Comamnds>")
-	fmt.Println("  -s : Include subdirectories")
+	//fmt.Println("  -s : Include subdirectories")
 	//fmt.Println("  -sp : Pause after each directory")
-	fmt.Println("  -h : Help menu")
+	fmt.Println("  -xf : Exclude files")
+	fmt.Println("  -xd : Exclude Directories")
+	fmt.Println("  -xs : Exclude Symlinks")
+	fmt.Println("  -h  : Help menu")
 
 }
 
@@ -143,6 +148,10 @@ func list_path(working_path string) int64 {
 			total_files += 1
 		}
 
+		if s.symlink == true && *xs == true {
+
+		}
+
 		storage[*s] = true
 	}
 
@@ -182,16 +191,17 @@ func list_path(working_path string) int64 {
 
 func get_directories(working_path string) []string {
 	directories := []string{}
-	if *recursive == true {
-		filepath.Walk(working_path, func(path string, f os.FileInfo, err error) error {
-			if f.IsDir() == true {
-				directories = append(directories, path.Join(working_path, f.Name()))
-			}
-			return nil
-		})
-	} else {
-		directories = append(directories, working_path)
-	}
+	// if *recursive == true {
+	//	filepath.Walk(working_path, func(path string, f os.FileInfo, err error) error {
+	//		if f.IsDir() == true {
+	//			directories = append(directories, path.Join(working_path, f.Name()))
+	//		}
+	//		return nil
+	//	})
+	//} else {
+	//	directories = append(directories, working_path)
+	//}
+	directories = append(directories, working_path) // temp thing until we get the recursion sorted out.
 	return directories
 }
 
@@ -221,12 +231,16 @@ func main() {
 	// bit of stuff for consistancy.
 	working_path = strings.Replace(working_path, "\\", "/", -1)
 
-	directories := get_directories(working_path)
-	for _, directory := range directories {
-		list_path(directory)
-	}
+	// finally we list the path
+	list_path(working_path)
+	fmt.Println(all_total_size)
 
-	if *recursive == true { // doesnt do anything yet
-		fmt.Println(all_total_size)
-	}
+	//directories := get_directories(working_path)
+	//for _, directory := range directories {
+	//	list_path(directory)
+	//}
+
+	//if *recursive == true { // doesnt do anything yet
+	//	fmt.Println(all_total_size)
+	//}
 }
