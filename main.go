@@ -12,11 +12,11 @@ import (
 	"strings"
 )
 
-var recursive = flag.Bool("s", false, "Recurse subdirectories")
+//var recursive = flag.Bool("s", false, "Recurse subdirectories")
 var help = flag.Bool("h", false, "Help")
-var xd = flag.Bool("xd", true, "Exclude Directories")
-var xf = flag.Bool("xf", true, "Exclude Files")
-var xs = flag.Bool("xs", true, "Exclude Symlinks")
+var excludeDirectories = flag.Bool("xd", false, "Exclude Directories")
+var excludeFiles = flag.Bool("xf", false, "Exclude Files")
+var excludeSymlinks = flag.Bool("xs", false, "Exclude Symlinks")
 
 type file_list struct {
 	name    string
@@ -127,6 +127,17 @@ func list_path(working_path string) int64 {
 
 	storage := map[file_list]bool{}
 	for _, f := range files {
+		if f.IsDir() {
+			if *excludeDirectories == true {
+				continue
+			}
+		} else {
+			if symlink_check(path.Join(working_path, f.Name())) == true && *excludeSymlinks == true {
+				continue
+			} else if *excludeFiles == true {
+				continue
+			}
+		}
 		s := new(file_list)
 		s.name = f.Name()
 		s.size = size_commaed(f.Size())
@@ -147,11 +158,6 @@ func list_path(working_path string) int64 {
 		} else {
 			total_files += 1
 		}
-
-		if s.symlink == true && *xs == true {
-
-		}
-
 		storage[*s] = true
 	}
 
@@ -205,6 +211,17 @@ func get_directories(working_path string) []string {
 	return directories
 }
 
+func does_path_exist(working_path string) bool {
+	_, err := os.Stat(working_path)
+	if err == nil {
+		return true
+	} else {
+		print("The path does not exist...\n")
+		os.Exit(0)
+	}
+	return false
+}
+
 func main() {
 	flag.Parse()
 
@@ -213,7 +230,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	var all_total_size int64 = 0
+	//var all_total_size int64 = 0
 
 	// check the args for a working path. we need to move this to some args processing once we start adding more features.
 	working_path := "."
@@ -232,8 +249,11 @@ func main() {
 	working_path = strings.Replace(working_path, "\\", "/", -1)
 
 	// finally we list the path
-	list_path(working_path)
-	fmt.Println(all_total_size)
+	if does_path_exist(working_path) == true {
+		list_path(working_path)
+	}
+
+	// fmt.Println(all_total_size)
 
 	//directories := get_directories(working_path)
 	//for _, directory := range directories {
