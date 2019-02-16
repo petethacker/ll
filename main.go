@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"strconv"
@@ -17,6 +16,7 @@ var help = flag.Bool("h", false, "Help")
 var excludeDirectories = flag.Bool("xd", false, "Exclude Directories")
 var excludeFiles = flag.Bool("xf", false, "Exclude Files")
 var excludeSymlinks = flag.Bool("xs", false, "Exclude Symlinks")
+var textSearch = flag.String("f", "", "Text Search")
 
 type file_list struct {
 	name    string
@@ -34,7 +34,8 @@ func get_cwd() string {
 func symlink_check(path string) bool {
 	fi, err := os.Lstat(path)
 	if err != nil {
-		log.Fatal(err)
+		//log.Fatal(err)	//log.Fatal(err) // if we have this enabled it raises access errors on some files unless ll is run as admin.
+		return false
 	}
 	switch mode := fi.Mode(); {
 	case mode&os.ModeSymlink != 0:
@@ -127,38 +128,40 @@ func list_path(working_path string) int64 {
 
 	storage := map[file_list]bool{}
 	for _, f := range files {
-		if f.IsDir() {
-			if *excludeDirectories == true {
-				continue
+		if strings.Contains(strings.ToLower(f.Name()), strings.ToLower(*textSearch)) {
+			if f.IsDir() {
+				if *excludeDirectories == true {
+					continue
+				}
+			} else {
+				if symlink_check(path.Join(working_path, f.Name())) == true && *excludeSymlinks == true {
+					continue
+				} else if *excludeFiles == true {
+					continue
+				}
 			}
-		} else {
-			if symlink_check(path.Join(working_path, f.Name())) == true && *excludeSymlinks == true {
-				continue
-			} else if *excludeFiles == true {
-				continue
+			s := new(file_list)
+			s.name = f.Name()
+			s.size = size_commaed(f.Size())
+			total_size += f.Size()
+			if len(s.size) > largest_size {
+				largest_size = len(s.size)
 			}
-		}
-		s := new(file_list)
-		s.name = f.Name()
-		s.size = size_commaed(f.Size())
-		total_size += f.Size()
-		if len(s.size) > largest_size {
-			largest_size = len(s.size)
-		}
-		s.modTime = f.ModTime().String()[:19]
-		s.isDir = f.IsDir()
-		if s.isDir == true {
-			total_dirs += 1
-		} else if f.Size() == 0 {
-			if symlink_check(path.Join(working_path, f.Name())) == true {
-				s.symlink = true
-				total_links += 1
-				bonus_spacing = 7
+			s.modTime = f.ModTime().String()[:19]
+			s.isDir = f.IsDir()
+			if s.isDir == true {
+				total_dirs += 1
+			} else if f.Size() == 0 {
+				if symlink_check(path.Join(working_path, f.Name())) == true {
+					s.symlink = true
+					total_links += 1
+					bonus_spacing = 7
+				}
+			} else {
+				total_files += 1
 			}
-		} else {
-			total_files += 1
+			storage[*s] = true
 		}
-		storage[*s] = true
 	}
 
 	fmt.Println("")
@@ -224,10 +227,14 @@ func does_path_exist(working_path string) bool {
 
 func remove_args() []string {
 	var newArgs []string
+	last := "empty" // need a better solution for this.
 	for _, arg := range os.Args {
 		if strings.HasPrefix(arg, "-") == false {
-			newArgs = append(newArgs, arg)
+			if strings.HasPrefix(last, "-f") == false {
+				newArgs = append(newArgs, arg)
+			}
 		}
+		last = arg
 	}
 	return newArgs
 }
