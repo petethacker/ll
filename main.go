@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"strconv"
@@ -35,7 +34,8 @@ func get_cwd() string {
 func symlink_check(path string) bool {
 	fi, err := os.Lstat(path)
 	if err != nil {
-		log.Fatal(err)
+		//log.Fatal(err)	//log.Fatal(err) // if we have this enabled it raises access errors on some files unless ll is run as admin.
+		return false
 	}
 	switch mode := fi.Mode(); {
 	case mode&os.ModeSymlink != 0:
