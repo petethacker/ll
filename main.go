@@ -26,12 +26,12 @@ type file_list struct {
 	symlink bool
 }
 
-func get_cwd() string {
+func GetCwd() string {
 	dir, _ := os.Getwd()
 	return dir
 }
 
-func symlink_check(path string) bool {
+func SymlinkCheck(path string) bool {
 	fi, err := os.Lstat(path)
 	if err != nil {
 		//log.Fatal(err)	//log.Fatal(err) // if we have this enabled it raises access errors on some files unless ll is run as admin.
@@ -101,7 +101,7 @@ func pause() {
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
 }
 
-func list_path(working_path string) int64 {
+func list_path(workingPath string) int64 {
 	var largest_size int = 4
 	var total_size int64 = 0
 	var size string
@@ -109,20 +109,20 @@ func list_path(working_path string) int64 {
 	var total_dirs int = 0
 	var total_links int = 0
 	var bonus_spacing int = 2
-	var working_path_target string = ""
+	var workingPath_target string = ""
 
-	if symlink_check(working_path) == true {
-		link_path, err := os.Readlink(working_path)
+	if SymlinkCheck(workingPath) == true {
+		linkPath, err := os.Readlink(workingPath)
 		if err != nil {
-			fmt.Println(working_path + " is a symlink but we failed to get the source path.")
+			fmt.Println(workingPath + " is a symlink but we failed to get the source path.")
 			os.Exit(1)
 		}
-		working_path_target = link_path
+		workingPath_target = linkPath
 	}
 
-	files, err := ioutil.ReadDir(working_path)
+	files, err := ioutil.ReadDir(workingPath)
 	if err != nil {
-		fmt.Println(working_path + " is not a valid directory.")
+		fmt.Println(workingPath + " is not a valid directory.")
 		os.Exit(1)
 	}
 
@@ -134,7 +134,7 @@ func list_path(working_path string) int64 {
 					continue
 				}
 			} else {
-				if symlink_check(path.Join(working_path, f.Name())) == true && *excludeSymlinks == true {
+				if SymlinkCheck(path.Join(workingPath, f.Name())) == true && *excludeSymlinks == true {
 					continue
 				} else if *excludeFiles == true {
 					continue
@@ -152,7 +152,7 @@ func list_path(working_path string) int64 {
 			if s.isDir == true {
 				total_dirs += 1
 			} else if f.Size() == 0 {
-				if symlink_check(path.Join(working_path, f.Name())) == true {
+				if SymlinkCheck(path.Join(workingPath, f.Name())) == true {
 					s.symlink = true
 					total_links += 1
 					bonus_spacing = 7
@@ -170,7 +170,7 @@ func list_path(working_path string) int64 {
 			size = "<DIR>" + strings.Repeat(" ", largest_size+bonus_spacing)
 		} else if i.symlink == true {
 			size = "<JUNCTION>" + strings.Repeat(" ", largest_size+bonus_spacing-5)
-			link, err := os.Readlink(path.Join(working_path, i.name))
+			link, err := os.Readlink(path.Join(workingPath, i.name))
 			if err != nil {
 				continue
 			}
@@ -181,9 +181,9 @@ func list_path(working_path string) int64 {
 		fmt.Println(i.modTime + "  " + size + "  " + i.name)
 	}
 	fmt.Println("")
-	path_string := strings.Repeat(" ", 14) + "Path\t" + working_path
-	if len(working_path_target) > 0 {
-		path_string = path_string + " => " + working_path_target
+	path_string := strings.Repeat(" ", 14) + "Path\t" + workingPath
+	if len(workingPath_target) > 0 {
+		path_string = path_string + " => " + workingPath_target
 	}
 	fmt.Println(path_string)
 	if total_dirs > 0 {
@@ -198,24 +198,24 @@ func list_path(working_path string) int64 {
 	return total_size
 }
 
-func get_directories(working_path string) []string {
+func get_directories(workingPath string) []string {
 	directories := []string{}
 	// if *recursive == true {
-	//	filepath.Walk(working_path, func(path string, f os.FileInfo, err error) error {
+	//	filepath.Walk(workingPath, func(path string, f os.FileInfo, err error) error {
 	//		if f.IsDir() == true {
-	//			directories = append(directories, path.Join(working_path, f.Name()))
+	//			directories = append(directories, path.Join(workingPath, f.Name()))
 	//		}
 	//		return nil
 	//	})
 	//} else {
-	//	directories = append(directories, working_path)
+	//	directories = append(directories, workingPath)
 	//}
-	directories = append(directories, working_path) // temp thing until we get the recursion sorted out.
+	directories = append(directories, workingPath) // temp thing until we get the recursion sorted out.
 	return directories
 }
 
-func does_path_exist(working_path string) bool {
-	_, err := os.Stat(working_path)
+func does_path_exist(workingPath string) bool {
+	_, err := os.Stat(workingPath)
 	if err == nil {
 		return true
 	} else {
@@ -225,7 +225,7 @@ func does_path_exist(working_path string) bool {
 	return false
 }
 
-func remove_args() []string {
+func RemoveArgs() []string {
 	var newArgs []string
 	last := "empty" // need a better solution for this.
 	for _, arg := range os.Args {
@@ -247,34 +247,34 @@ func main() {
 		os.Exit(0)
 	}
 
-	os.Args = remove_args()
+	os.Args = RemoveArgs()
 
 	//var all_total_size int64 = 0
 
 	// check the args for a working path. we need to move this to some args processing once we start adding more features.
-	working_path := "."
+	workingPath := "."
 	if len(os.Args) > 1 {
-		working_path = os.Args[len(os.Args)-1]
+		workingPath = os.Args[len(os.Args)-1]
 	}
 	// if no path is specified we get the current working directory so that we can print the path rather than just a "."
-	if working_path == "." {
-		working_path = get_cwd()
+	if workingPath == "." {
+		workingPath = GetCwd()
 	}
 	// when on windows searching the path c: would raise an error. so we now add a "/" onto the path.
-	if working_path[len(working_path)-1:] == ":" {
-		working_path = working_path + "/"
+	if workingPath[len(workingPath)-1:] == ":" {
+		workingPath = workingPath + "/"
 	}
 	// bit of stuff for consistancy.
-	working_path = strings.Replace(working_path, "\\", "/", -1)
+	workingPath = strings.Replace(workingPath, "\\", "/", -1)
 
 	// finally we list the path
-	if does_path_exist(working_path) == true {
-		list_path(working_path)
+	if does_path_exist(workingPath) == true {
+		list_path(workingPath)
 	}
 
 	// fmt.Println(all_total_size)
 
-	//directories := get_directories(working_path)
+	//directories := get_directories(workingPath)
 	//for _, directory := range directories {
 	//	list_path(directory)
 	//}
