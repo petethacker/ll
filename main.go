@@ -11,7 +11,6 @@ import (
 	"strings"
 )
 
-//var recursive = flag.Bool("s", false, "Recurse subdirectories")
 var help = flag.Bool("h", false, "Help")
 var excludeDirectories = flag.Bool("xd", false, "Exclude Directories")
 var excludeFiles = flag.Bool("xf", false, "Exclude Files")
@@ -68,8 +67,6 @@ func HelpOutput() {
 	fmt.Println("ll <commands> <path to list>")
 	fmt.Println()
 	fmt.Println("  <Comamnds>")
-	//fmt.Println("  -s : Include subdirectories")
-	//fmt.Println("  -sp : Pause after each directory")
 	fmt.Println("  -xf : Exclude files")
 	fmt.Println("  -xd : Exclude Directories")
 	fmt.Println("  -xs : Exclude Symlinks")
@@ -178,22 +175,6 @@ func ListPath(workingPath string) int64 {
 	return totalSize
 }
 
-func GetDirectories(workingPath string) []string {
-	directories := []string{}
-	// if *recursive == true {
-	//	filepath.Walk(workingPath, func(path string, f os.FileInfo, err error) error {
-	//		if f.IsDir() == true {
-	//			directories = append(directories, path.Join(workingPath, f.Name()))
-	//		}
-	//		return nil
-	//	})
-	//} else {
-	//	directories = append(directories, workingPath)
-	//}
-	directories = append(directories, workingPath) // temp thing until we get the recursion sorted out.
-	return directories
-}
-
 func DoesPathExist(workingPath string) bool {
 	_, err := os.Stat(workingPath)
 	if err == nil {
@@ -229,8 +210,6 @@ func main() {
 
 	os.Args = RemoveArgs()
 
-	//var all_totalSize int64 = 0
-
 	// check the args for a working path. we need to move this to some args processing once we start adding more features.
 	workingPath := "."
 	if len(os.Args) > 1 {
@@ -251,15 +230,4 @@ func main() {
 	if DoesPathExist(workingPath) == true {
 		ListPath(workingPath)
 	}
-
-	// fmt.Println(all_totalSize)
-
-	//directories := GetDirectories(workingPath)
-	//for _, directory := range directories {
-	//	ListPath(directory)
-	//}
-
-	//if *recursive == true { // doesnt do anything yet
-	//	fmt.Println(all_totalSize)
-	//}
 }
