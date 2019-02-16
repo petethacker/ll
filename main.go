@@ -18,7 +18,7 @@ var excludeFiles = flag.Bool("xf", false, "Exclude Files")
 var excludeSymlinks = flag.Bool("xs", false, "Exclude Symlinks")
 var textSearch = flag.String("f", "", "Text Search")
 
-type file_list struct {
+type FileList struct {
 	name    string
 	size    string
 	modTime string
@@ -82,14 +82,14 @@ func pause() {
 }
 
 func ListPath(workingPath string) int64 {
-	var largest_size int = 4
-	var total_size int64 = 0
+	var largestSize int = 4
+	var totalSize int64 = 0
 	var size string
 	var total_files int = 0
 	var total_dirs int = 0
 	var total_links int = 0
 	var bonus_spacing int = 2
-	var workingPath_target string = ""
+	var workingPathTarget string = ""
 
 	if SymlinkCheck(workingPath) == true {
 		linkPath, err := os.Readlink(workingPath)
@@ -97,7 +97,7 @@ func ListPath(workingPath string) int64 {
 			fmt.Println(workingPath + " is a symlink but we failed to get the source path.")
 			os.Exit(1)
 		}
-		workingPath_target = linkPath
+		workingPathTarget = linkPath
 	}
 
 	files, err := ioutil.ReadDir(workingPath)
@@ -106,7 +106,7 @@ func ListPath(workingPath string) int64 {
 		os.Exit(1)
 	}
 
-	storage := map[file_list]bool{}
+	storage := map[FileList]bool{}
 	for _, f := range files {
 		if strings.Contains(strings.ToLower(f.Name()), strings.ToLower(*textSearch)) {
 			if f.IsDir() {
@@ -120,12 +120,12 @@ func ListPath(workingPath string) int64 {
 					continue
 				}
 			}
-			s := new(file_list)
+			s := new(FileList)
 			s.name = f.Name()
 			s.size = SizeCommaed(f.Size())
-			total_size += f.Size()
-			if len(s.size) > largest_size {
-				largest_size = len(s.size)
+			totalSize += f.Size()
+			if len(s.size) > largestSize {
+				largestSize = len(s.size)
 			}
 			s.modTime = f.ModTime().String()[:19]
 			s.isDir = f.IsDir()
@@ -147,25 +147,25 @@ func ListPath(workingPath string) int64 {
 	fmt.Println("")
 	for i := range storage {
 		if i.isDir == true {
-			size = "<DIR>" + strings.Repeat(" ", largest_size+bonus_spacing)
+			size = "<DIR>" + strings.Repeat(" ", largestSize+bonus_spacing)
 		} else if i.symlink == true {
-			size = "<JUNCTION>" + strings.Repeat(" ", largest_size+bonus_spacing-5)
+			size = "<JUNCTION>" + strings.Repeat(" ", largestSize+bonus_spacing-5)
 			link, err := os.Readlink(path.Join(workingPath, i.name))
 			if err != nil {
 				continue
 			}
 			i.name = i.name + " => " + link
 		} else {
-			size = strings.Repeat(" ", largest_size-len(i.size)+len("<DIR>")+bonus_spacing) + i.size
+			size = strings.Repeat(" ", largestSize-len(i.size)+len("<DIR>")+bonus_spacing) + i.size
 		}
 		fmt.Println(i.modTime + "  " + size + "  " + i.name)
 	}
 	fmt.Println("")
-	path_string := strings.Repeat(" ", 14) + "Path\t" + workingPath
-	if len(workingPath_target) > 0 {
-		path_string = path_string + " => " + workingPath_target
+	pathString := strings.Repeat(" ", 14) + "Path\t" + workingPath
+	if len(workingPathTarget) > 0 {
+		pathString = pathString + " => " + workingPathTarget
 	}
-	fmt.Println(path_string)
+	fmt.Println(pathString)
 	if total_dirs > 0 {
 		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_dirs) + " Dir(s)")
 	}
@@ -173,12 +173,12 @@ func ListPath(workingPath string) int64 {
 		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_links) + " Symlink(s)")
 	}
 	if total_files > 0 {
-		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_files) + " File(s)\t\t" + SizeCommaed(total_size) + " bytes")
+		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_files) + " File(s)\t\t" + SizeCommaed(totalSize) + " bytes")
 	}
-	return total_size
+	return totalSize
 }
 
-func get_directories(workingPath string) []string {
+func GetDirectories(workingPath string) []string {
 	directories := []string{}
 	// if *recursive == true {
 	//	filepath.Walk(workingPath, func(path string, f os.FileInfo, err error) error {
@@ -194,7 +194,7 @@ func get_directories(workingPath string) []string {
 	return directories
 }
 
-func does_path_exist(workingPath string) bool {
+func DoesPathExist(workingPath string) bool {
 	_, err := os.Stat(workingPath)
 	if err == nil {
 		return true
@@ -229,7 +229,7 @@ func main() {
 
 	os.Args = RemoveArgs()
 
-	//var all_total_size int64 = 0
+	//var all_totalSize int64 = 0
 
 	// check the args for a working path. we need to move this to some args processing once we start adding more features.
 	workingPath := "."
@@ -248,18 +248,18 @@ func main() {
 	workingPath = strings.Replace(workingPath, "\\", "/", -1)
 
 	// finally we list the path
-	if does_path_exist(workingPath) == true {
+	if DoesPathExist(workingPath) == true {
 		ListPath(workingPath)
 	}
 
-	// fmt.Println(all_total_size)
+	// fmt.Println(all_totalSize)
 
-	//directories := get_directories(workingPath)
+	//directories := GetDirectories(workingPath)
 	//for _, directory := range directories {
 	//	ListPath(directory)
 	//}
 
 	//if *recursive == true { // doesnt do anything yet
-	//	fmt.Println(all_total_size)
+	//	fmt.Println(all_totalSize)
 	//}
 }
