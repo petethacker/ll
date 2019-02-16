@@ -34,7 +34,7 @@ func GetCwd() string {
 func SymlinkCheck(path string) bool {
 	fi, err := os.Lstat(path)
 	if err != nil {
-		//log.Fatal(err)	//log.Fatal(err) // if we have this enabled it raises access errors on some files unless ll is run as admin.
+		//log.Fatal(err) // if we have this enabled it raises access errors on some files unless ll is run as admin.
 		return false
 	}
 	switch mode := fi.Mode(); {
@@ -85,10 +85,10 @@ func ListPath(workingPath string) int64 {
 	var largestSize int = 4
 	var totalSize int64 = 0
 	var size string
-	var total_files int = 0
-	var total_dirs int = 0
-	var total_links int = 0
-	var bonus_spacing int = 2
+	var totalFiles int = 0
+	var totalDirs int = 0
+	var totalLinks int = 0
+	var bonusSpacing int = 2
 	var workingPathTarget string = ""
 
 	if SymlinkCheck(workingPath) == true {
@@ -130,15 +130,15 @@ func ListPath(workingPath string) int64 {
 			s.modTime = f.ModTime().String()[:19]
 			s.isDir = f.IsDir()
 			if s.isDir == true {
-				total_dirs += 1
+				totalDirs += 1
 			} else if f.Size() == 0 {
 				if SymlinkCheck(path.Join(workingPath, f.Name())) == true {
 					s.symlink = true
-					total_links += 1
-					bonus_spacing = 7
+					totalLinks += 1
+					bonusSpacing = 7
 				}
 			} else {
-				total_files += 1
+				totalFiles += 1
 			}
 			storage[*s] = true
 		}
@@ -147,16 +147,16 @@ func ListPath(workingPath string) int64 {
 	fmt.Println("")
 	for i := range storage {
 		if i.isDir == true {
-			size = "<DIR>" + strings.Repeat(" ", largestSize+bonus_spacing)
+			size = "<DIR>" + strings.Repeat(" ", largestSize+bonusSpacing)
 		} else if i.symlink == true {
-			size = "<JUNCTION>" + strings.Repeat(" ", largestSize+bonus_spacing-5)
+			size = "<JUNCTION>" + strings.Repeat(" ", largestSize+bonusSpacing-5)
 			link, err := os.Readlink(path.Join(workingPath, i.name))
 			if err != nil {
 				continue
 			}
 			i.name = i.name + " => " + link
 		} else {
-			size = strings.Repeat(" ", largestSize-len(i.size)+len("<DIR>")+bonus_spacing) + i.size
+			size = strings.Repeat(" ", largestSize-len(i.size)+len("<DIR>")+bonusSpacing) + i.size
 		}
 		fmt.Println(i.modTime + "  " + size + "  " + i.name)
 	}
@@ -166,14 +166,14 @@ func ListPath(workingPath string) int64 {
 		pathString = pathString + " => " + workingPathTarget
 	}
 	fmt.Println(pathString)
-	if total_dirs > 0 {
-		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_dirs) + " Dir(s)")
+	if totalDirs > 0 {
+		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalDirs) + " Dir(s)")
 	}
-	if total_links > 0 {
-		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_links) + " Symlink(s)")
+	if totalLinks > 0 {
+		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalLinks) + " Symlink(s)")
 	}
-	if total_files > 0 {
-		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_files) + " File(s)\t\t" + SizeCommaed(totalSize) + " bytes")
+	if totalFiles > 0 {
+		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalFiles) + " File(s)\t\t" + SizeCommaed(totalSize) + " bytes")
 	}
 	return totalSize
 }
