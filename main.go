@@ -44,27 +44,8 @@ func SymlinkCheck(path string) bool {
 	return false
 }
 
-func size_commaed_old(old_size int64) string {
-	size := strconv.Itoa(int(old_size))
-	if len(size) < 4 {
-		return size
-	}
-	var commaed string
-	index := 1
-	for i := len(size) - 1; i >= 0; i-- {
-		commaed = string(size[i]) + commaed
-		if index > 2 {
-			commaed = "," + commaed
-			index = 1
-		} else {
-			index += 1
-		}
-	}
-	return commaed
-}
-
-func size_commaed(old_size int64) string {
-	size := strconv.Itoa(int(old_size))
+func SizeCommaed(oldSize int64) string {
+	size := strconv.Itoa(int(oldSize))
 	if len(size) < 4 {
 		return size
 	}
@@ -76,12 +57,12 @@ func size_commaed(old_size int64) string {
 			index = 1
 		}
 		commaed = string(size[i]) + commaed
-		index += 1
+		index++
 	}
 	return commaed
 }
 
-func help_output() {
+func HelpOutput() {
 	fmt.Println("Lists all files in a directory")
 	fmt.Println()
 	fmt.Println("ll <commands> <path to list>")
@@ -93,7 +74,6 @@ func help_output() {
 	fmt.Println("  -xd : Exclude Directories")
 	fmt.Println("  -xs : Exclude Symlinks")
 	fmt.Println("  -h  : Help menu")
-
 }
 
 func pause() {
@@ -101,7 +81,7 @@ func pause() {
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
 }
 
-func list_path(workingPath string) int64 {
+func ListPath(workingPath string) int64 {
 	var largest_size int = 4
 	var total_size int64 = 0
 	var size string
@@ -142,7 +122,7 @@ func list_path(workingPath string) int64 {
 			}
 			s := new(file_list)
 			s.name = f.Name()
-			s.size = size_commaed(f.Size())
+			s.size = SizeCommaed(f.Size())
 			total_size += f.Size()
 			if len(s.size) > largest_size {
 				largest_size = len(s.size)
@@ -193,7 +173,7 @@ func list_path(workingPath string) int64 {
 		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_links) + " Symlink(s)")
 	}
 	if total_files > 0 {
-		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_files) + " File(s)\t\t" + size_commaed(total_size) + " bytes")
+		fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(total_files) + " File(s)\t\t" + SizeCommaed(total_size) + " bytes")
 	}
 	return total_size
 }
@@ -243,7 +223,7 @@ func main() {
 	flag.Parse()
 
 	if *help == true {
-		help_output()
+		HelpOutput()
 		os.Exit(0)
 	}
 
@@ -269,14 +249,14 @@ func main() {
 
 	// finally we list the path
 	if does_path_exist(workingPath) == true {
-		list_path(workingPath)
+		ListPath(workingPath)
 	}
 
 	// fmt.Println(all_total_size)
 
 	//directories := get_directories(workingPath)
 	//for _, directory := range directories {
-	//	list_path(directory)
+	//	ListPath(directory)
 	//}
 
 	//if *recursive == true { // doesnt do anything yet
