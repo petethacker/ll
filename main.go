@@ -30,6 +30,10 @@ func GetCwd() string {
 	return dir
 }
 
+func print(message string) {
+	fmt.Println(message)
+}
+
 func SymlinkCheck(path string) bool {
 	fi, err := os.Lstat(path)
 	if err != nil {
@@ -78,6 +82,29 @@ func pause() {
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
 }
 
+func StringCheck(path string, searchString string) bool {
+	if strings.HasSuffix(searchString, "*") && strings.HasPrefix(searchString, "*") {
+		searchString = searchString[+1:]
+		searchString = searchString[:len(searchString)-1]
+		if searchString == "." {
+			return true
+		}
+	} else if strings.HasPrefix(searchString, "*") {
+		searchString = searchString[+1:]
+		if strings.HasSuffix(path, searchString) {
+			return true
+		}
+	} else if strings.HasSuffix(searchString, "*") {
+		searchString = searchString[:len(searchString)-1]
+		if strings.HasPrefix(path, searchString) {
+			return true
+		}
+	} else if strings.Contains(path, searchString) {
+		return true
+	}
+	return false
+}
+
 func ListPath(workingPath string) int64 {
 	var largestSize int = 4
 	var totalSize int64 = 0
@@ -105,7 +132,7 @@ func ListPath(workingPath string) int64 {
 
 	storage := map[FileList]bool{}
 	for _, f := range files {
-		if strings.Contains(strings.ToLower(f.Name()), strings.ToLower(*textSearch)) {
+		if StringCheck(strings.ToLower(f.Name()), strings.ToLower(*textSearch)) {
 			if f.IsDir() {
 				if *excludeDirectories == true {
 					continue
