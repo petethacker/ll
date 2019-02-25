@@ -74,6 +74,9 @@ func HelpOutput() {
 	fmt.Println("  -xf : Exclude files")
 	fmt.Println("  -xd : Exclude Directories")
 	fmt.Println("  -xs : Exclude Symlinks")
+	fmt.Println()
+	fmt.Println("  -f <string> : Search string")
+	fmt.Println()
 	fmt.Println("  -h  : Help menu")
 }
 
