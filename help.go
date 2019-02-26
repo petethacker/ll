@@ -15,7 +15,7 @@ func HelpOutput() {
 	print("                 *bla* = same as above")
 	print("                 bla*  = searches for strings starting with 'bla'")
 	print("                 *bla  = searches for strings ending with 'bla'")
-	print("  -fh <size>kb  : Highlight files above -fs <size>kb")
+	print("  -fh <size>kb  : Highlight files above -fh <size>kb")
 	print("                 kb, mb, gb, tb, pb accepted.")
 	print("  -fso <size>kb : Show only files above -fso <size>")
 	print("                 kb, mb, gb, tb, pb accepted.")
