@@ -114,7 +114,9 @@ func pause() {
 }
 
 func StringCheck(path string, searchString string) bool {
-	if strings.HasSuffix(searchString, "*") && strings.HasPrefix(searchString, "*") {
+	if searchString == "*" {
+		return true
+	} else if strings.HasSuffix(searchString, "*") && strings.HasPrefix(searchString, "*") {
 		searchString = searchString[+1:]
 		searchString = searchString[:len(searchString)-1]
 		if searchString == "." {
@@ -225,6 +227,8 @@ func ListPath(workingPath string) int64 {
 				size = strings.Repeat(" ", largestSize-len(i.size)+len("<DIR>")+bonusSpacing) + i.size
 			}
 			if i.highlight == true {
+				printError(i.modTime + "  " + size + "  " + i.name)
+			} else if i.symlink == true {
 				printWarning(i.modTime + "  " + size + "  " + i.name)
 			} else {
 				fmt.Println(i.modTime + "  " + size + "  " + i.name)
@@ -321,7 +325,7 @@ func RemoveArgs() []string {
 	last := "empty" // need a better solution for this, its total crap.
 	for _, arg := range os.Args {
 		if strings.HasPrefix(arg, "-") == false {
-			if strings.HasPrefix(last, "-f") == false && strings.HasPrefix(last, "-s") == false {
+			if strings.HasPrefix(last, "-f") == false {
 				newArgs = append(newArgs, arg)
 			}
 		}
