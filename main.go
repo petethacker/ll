@@ -14,13 +14,16 @@ import (
 )
 
 // arguments
-var help = flag.Bool("h", false, "Help")
+var help = flag.Bool("h", false, "Show help")
+var creditsList = flag.Bool("credits", false, "List credits")
+var todoList = flag.Bool("todo", false, "List the to do items, including bugs/issues")
 var excludeDirectories = flag.Bool("xd", false, "Exclude Directories")
 var excludeFiles = flag.Bool("xf", false, "Exclude Files")
 var excludeSymlinks = flag.Bool("xs", false, "Exclude Symlinks")
 var textSearch = flag.String("f", "", "Text Search")
 var sizeCheck = flag.String("fs", "", "Highlight files larger than x")
 var sizeCheckListOnly = flag.String("fso", "", "Only show files larger than x")
+
 var sizeCheckOnly bool = false
 var sizeCheckBytes int = 1125899906842620 * 1024
 
@@ -312,30 +315,6 @@ func processSizeCheck() int {
 	return newSizeCheck
 }
 
-func HelpOutput() {
-	fmt.Println("Lists all files in a directory")
-	fmt.Println()
-	fmt.Println("ll <commands> <path to list files / directories>")
-	fmt.Println()
-	printWarning("  <Comamnds>")
-	fmt.Println("  -xf : Exclude files")
-	fmt.Println("  -xd : Exclude Directories")
-	fmt.Println("  -xs : Exclude Symlinks")
-	fmt.Println()
-	fmt.Println("  -f <string>   : Search string to find files")
-	fmt.Println("                 bla   = searches for strings that contain 'bla'")
-	fmt.Println("                 *bla* = same as above")
-	fmt.Println("                 bla*  = searches for strings starting with 'bla'")
-	fmt.Println("                 *bla  = searches for strings ending with 'bla'")
-	fmt.Println("  -fs <size>kb  : Highlight files above -fs <size>kb")
-	fmt.Println("                 kb, mb, gb, tb, pb accepted.")
-	fmt.Println("  -fso <size>kb : Only list files above -fso <size>")
-	fmt.Println("                 kb, mb, gb, tb, pb accepted.")
-	fmt.Println("                 will not highlight, exclude directories and exclude symlinks")
-	fmt.Println()
-	fmt.Println("  -h  : Help menu")
-}
-
 func RemoveArgs() []string {
 	var newArgs []string
 	last := "empty" // need a better solution for this, its total crap.
@@ -355,6 +334,16 @@ func main() {
 
 	if *help == true {
 		HelpOutput()
+		os.Exit(0)
+	}
+
+	if *creditsList == true {
+		credits()
+		os.Exit(0)
+	}
+
+	if *todoList == true {
+		todo()
 		os.Exit(0)
 	}
 
