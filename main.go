@@ -21,11 +21,13 @@ var excludeDirectories = flag.Bool("xd", false, "Exclude Directories")
 var excludeFiles = flag.Bool("xf", false, "Exclude Files")
 var excludeSymlinks = flag.Bool("xs", false, "Exclude Symlinks")
 var textSearch = flag.String("f", "", "Text Search")
-var sizeCheck = flag.String("fs", "", "Highlight files larger than x")
+var sizeCheck = flag.String("fh", "", "Highlight files larger than x")
 var sizeCheckListOnly = flag.String("fso", "", "Only show files larger than x")
 
 var sizeCheckOnly bool = false
-var sizeCheckBytes int = 1125899906842620 * 1024
+var defaultSize int = 1125899906842620 * 1024
+var sizeCheckBytes int = defaultSize
+var sizeCheckBytesHighlight int = defaultSize
 
 func print(value ...interface{}) {
 	formatted_line := fmt.Sprintf(value[0].(string), value[1:len(value)]...)
@@ -67,6 +69,7 @@ type FileList struct {
 	isDir     bool
 	symlink   bool
 	aboveSize bool
+	highlight bool
 }
 
 func GetCwd() string {
@@ -176,17 +179,16 @@ func ListPath(workingPath string) int64 {
 			s.name = f.Name()
 			s.size = SizeCommaed(f.Size())
 			// check if the file is over the specified size for highlighting
-			if int(f.Size()) > sizeCheckBytes {
+			if int(f.Size()) >= sizeCheckBytes {
 				s.aboveSize = true
-			}
-			// check if we only want to list files above x size
-			if sizeCheckOnly == true && s.aboveSize == false {
+			} else if sizeCheckOnly == true {
 				continue
 			}
-			// if we are only listing files above x size then we dont need to highlight
-			if sizeCheckOnly == true && s.aboveSize == true {
-				s.aboveSize = false
+			// lets see if we have to highlight the files.
+			if int(f.Size()) >= sizeCheckBytesHighlight {
+				s.highlight = true
 			}
+
 			totalSize += f.Size()
 			if len(s.size) > largestSize {
 				largestSize = len(s.size)
@@ -222,7 +224,7 @@ func ListPath(workingPath string) int64 {
 			} else {
 				size = strings.Repeat(" ", largestSize-len(i.size)+len("<DIR>")+bonusSpacing) + i.size
 			}
-			if i.aboveSize == true {
+			if i.highlight == true {
 				printWarning(i.modTime + "  " + size + "  " + i.name)
 			} else {
 				fmt.Println(i.modTime + "  " + size + "  " + i.name)
@@ -265,8 +267,7 @@ func DoesPathExist(workingPath string) bool {
 	return false
 }
 
-func processSizeCheck() int {
-	var sizeCheckString string = *sizeCheck
+func processSizeCheck(sizeCheckString string) int {
 	var newSizeCheck int = sizeCheckBytes
 	if strings.HasSuffix(strings.ToLower(sizeCheckString), "kb") {
 		// 1024
@@ -349,16 +350,26 @@ func main() {
 
 	os.Args = RemoveArgs()
 
+	if *sizeCheckListOnly != "" && *sizeCheck != "" {
+		if *sizeCheckListOnly == *sizeCheck {
+			*sizeCheck = ""
+		}
+	}
+
 	if *sizeCheckListOnly != "" {
-		*sizeCheck = *sizeCheckListOnly
+		sizeCheckBytes = processSizeCheck(*sizeCheckListOnly)
 		sizeCheckOnly = true
 	}
 
 	if *sizeCheck != "" {
-		sizeCheckBytes = processSizeCheck()
-	} else {
-		sizeCheckOnly = false
+		sizeCheckBytesHighlight = processSizeCheck(*sizeCheck)
 	}
+
+	// checking if the list and highlight is the same size and if so disabling the highlight.
+	// i did want this but having second thoughts now so commenting it out.
+	//if *sizeCheckListOnly != "" && sizeCheckBytes >= sizeCheckBytesHighlight {
+	//	sizeCheckBytesHighlight = defaultSize
+	//}
 
 	if sizeCheckOnly == true {
 		*excludeDirectories = true
