@@ -14,7 +14,7 @@ import (
 )
 
 // arguments
-var help = flag.Bool("h", false, "Show help")
+var help = flag.Bool("h", false, "Show help, see -h")
 var creditsList = flag.Bool("credits", false, "List credits")
 var todoList = flag.Bool("todo", false, "List the to do items, including bugs/issues")
 var excludeDirectories = flag.Bool("xd", false, "Exclude Directories")
@@ -120,6 +120,8 @@ func StringCheck(path string, searchString string) bool {
 		searchString = searchString[+1:]
 		searchString = searchString[:len(searchString)-1]
 		if searchString == "." {
+			return true
+		} else if strings.Contains(path, searchString) {
 			return true
 		}
 	} else if strings.HasPrefix(searchString, "*") {
