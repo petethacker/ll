@@ -13,6 +13,8 @@ import (
 	ct "github.com/daviddengcn/go-colortext"
 )
 
+var version float32 = 0.1
+
 // arguments
 var help = flag.Bool("h", false, "Show help, see -h")
 var creditsList = flag.Bool("credits", false, "List credits")
@@ -23,6 +25,7 @@ var excludeSymlinks = flag.Bool("xs", false, "Exclude Symlinks")
 var textSearch = flag.String("f", "", "Text Search")
 var sizeCheck = flag.String("fh", "", "Highlight files larger than x")
 var sizeCheckListOnly = flag.String("fso", "", "Only show files larger than x")
+var getversion = flag.Bool("v", false, "Version information")
 
 var sizeCheckOnly bool = false
 var defaultSize int = 1125899906842620 * 1024
@@ -351,6 +354,11 @@ func main() {
 
 	if *todoList == true {
 		todo()
+		os.Exit(0)
+	}
+
+	if *getversion == true {
+		print("Version: %.1f", version)
 		os.Exit(0)
 	}
 
