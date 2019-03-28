@@ -13,7 +13,7 @@ import (
 	ct "github.com/daviddengcn/go-colortext"
 )
 
-var version float32 = 0.1
+var version float32 = 0.2
 
 // arguments
 var help = flag.Bool("h", false, "Show help, see -h")
@@ -28,9 +28,9 @@ var sizeCheckListOnly = flag.String("fso", "", "Only show files larger than x")
 var getversion = flag.Bool("v", false, "Version information")
 
 var sizeCheckOnly bool = false
-var defaultSize int = 1125899906842620 * 1024
-var sizeCheckBytes int = defaultSize
-var sizeCheckBytesHighlight int = defaultSize
+var defaultSize int64 = 1125899906842620 * 1024
+var sizeCheckBytes int64 = defaultSize
+var sizeCheckBytesHighlight int64 = defaultSize
 
 func print(value ...interface{}) {
 	formatted_line := fmt.Sprintf(value[0].(string), value[1:len(value)]...)
@@ -186,13 +186,13 @@ func ListPath(workingPath string) int64 {
 			s.name = f.Name()
 			s.size = SizeCommaed(f.Size())
 			// check if the file is over the specified size for highlighting
-			if int(f.Size()) >= sizeCheckBytes {
+			if int64(f.Size()) >= sizeCheckBytes {
 				s.aboveSize = true
 			} else if sizeCheckOnly == true {
 				continue
 			}
 			// lets see if we have to highlight the files.
-			if int(f.Size()) >= sizeCheckBytesHighlight {
+			if int64(f.Size()) >= sizeCheckBytesHighlight {
 				s.highlight = true
 			}
 
@@ -276,51 +276,51 @@ func DoesPathExist(workingPath string) bool {
 	return false
 }
 
-func processSizeCheck(sizeCheckString string) int {
-	var newSizeCheck int = sizeCheckBytes
+func processSizeCheck(sizeCheckString string) int64 {
+	var newSizeCheck int64 = sizeCheckBytes
 	if strings.HasSuffix(strings.ToLower(sizeCheckString), "kb") {
 		// 1024
 		if strings.ToLower(sizeCheckString) == "kb" {
 			newSizeCheck = 1024
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = tempSize * 1024
+			newSizeCheck = int64(tempSize * 1024)
 		}
 	} else if strings.HasSuffix(strings.ToLower(sizeCheckString), "mb") {
 		// 1048576
 		if strings.ToLower(sizeCheckString) == "mb" {
-			newSizeCheck = 1048576
+			newSizeCheck = int64(1048576)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = tempSize * 1048576
+			newSizeCheck = int64(tempSize * 1048576)
 		}
 	} else if strings.HasSuffix(strings.ToLower(sizeCheckString), "gb") {
 		// 1073741824
 		if strings.ToLower(sizeCheckString) == "gb" {
-			newSizeCheck = 1073741824
+			newSizeCheck = int64(1073741824)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = tempSize * 1073741824
+			newSizeCheck = int64(tempSize * 1073741824)
 		}
 	} else if strings.HasSuffix(strings.ToLower(sizeCheckString), "tb") {
 		// 1099511627776
 		if strings.ToLower(sizeCheckString) == "tb" {
-			newSizeCheck = 1099511627776
+			newSizeCheck = int64(1099511627776)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = tempSize * 1099511627776
+			newSizeCheck = int64(tempSize * 1099511627776)
 		}
 	} else if strings.HasSuffix(strings.ToLower(sizeCheckString), "pb") {
 		// 1125899906842620
 		if strings.ToLower(sizeCheckString) == "pb" {
-			newSizeCheck = 1125899906842620
+			newSizeCheck = int64(1125899906842620)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = tempSize * 1125899906842620
+			newSizeCheck = int64(tempSize * 1125899906842620)
 		}
 	} else {
 		tempSize, _ := strconv.Atoi(sizeCheckString)
-		newSizeCheck = tempSize * 1
+		newSizeCheck = int64(tempSize * 1)
 	}
 	return newSizeCheck
 }
