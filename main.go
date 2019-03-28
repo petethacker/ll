@@ -281,10 +281,10 @@ func processSizeCheck(sizeCheckString string) int64 {
 	if strings.HasSuffix(strings.ToLower(sizeCheckString), "kb") {
 		// 1024
 		if strings.ToLower(sizeCheckString) == "kb" {
-			newSizeCheck = 1024
+			newSizeCheck = int64(1024)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = int64(tempSize * 1024)
+			newSizeCheck = int64(tempSize) * int64(1024)
 		}
 	} else if strings.HasSuffix(strings.ToLower(sizeCheckString), "mb") {
 		// 1048576
@@ -292,7 +292,7 @@ func processSizeCheck(sizeCheckString string) int64 {
 			newSizeCheck = int64(1048576)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = int64(tempSize * 1048576)
+			newSizeCheck = int64(tempSize) * int64(1048576)
 		}
 	} else if strings.HasSuffix(strings.ToLower(sizeCheckString), "gb") {
 		// 1073741824
@@ -300,7 +300,7 @@ func processSizeCheck(sizeCheckString string) int64 {
 			newSizeCheck = int64(1073741824)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = int64(tempSize * 1073741824)
+			newSizeCheck = int64(tempSize) * int64(1073741824)
 		}
 	} else if strings.HasSuffix(strings.ToLower(sizeCheckString), "tb") {
 		// 1099511627776
@@ -308,7 +308,7 @@ func processSizeCheck(sizeCheckString string) int64 {
 			newSizeCheck = int64(1099511627776)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = int64(tempSize * 1099511627776)
+			newSizeCheck = int64(tempSize) * int64(1099511627776)
 		}
 	} else if strings.HasSuffix(strings.ToLower(sizeCheckString), "pb") {
 		// 1125899906842620
@@ -316,7 +316,7 @@ func processSizeCheck(sizeCheckString string) int64 {
 			newSizeCheck = int64(1125899906842620)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = int64(tempSize * 1125899906842620)
+			newSizeCheck = int64(tempSize) * int64(1125899906842620)
 		}
 	} else {
 		tempSize, _ := strconv.Atoi(sizeCheckString)
