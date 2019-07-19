@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"net/http"
 	"os"
 	"path"
 	"strconv"
@@ -26,6 +28,9 @@ var textSearch = flag.String("f", "", "Text Search")
 var sizeCheck = flag.String("fh", "", "Highlight files larger than x")
 var sizeCheckListOnly = flag.String("fso", "", "Only show files larger than x")
 var getversion = flag.Bool("v", false, "Version information")
+var httpServer = flag.Bool("http", false, "Run a http server")
+var port = flag.String("p", "80", "port to bind server to")
+var directory = flag.String("d", ".", "directory of static files to serve")
 
 var sizeCheckOnly bool = false
 var defaultSize int64 = 1125899906842620 * 1024
@@ -339,11 +344,23 @@ func RemoveArgs() []string {
 	return newArgs
 }
 
+func HttpServer() {
+	http.Handle("/", http.FileServer(http.Dir(*directory)))
+
+	log.Printf("Serving %s on HTTP port: %s\n", *directory, *port)
+	log.Fatal(http.ListenAndServe(":"+*port, nil))
+}
+
 func main() {
 	flag.Parse()
 
 	if *help == true {
 		HelpOutput()
+		os.Exit(0)
+	}
+
+	if *httpServer == true {
+		HttpServer()
 		os.Exit(0)
 	}
 
