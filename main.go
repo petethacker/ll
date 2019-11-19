@@ -175,9 +175,11 @@ func ListPath(workingPath string) int64 {
 	}
 
 	files, err := ioutil.ReadDir(workingPath)
-	if err != nil {
+	if err != nil && *totalsOnly == false && *listDirectories == false {
 		printWarning(workingPath + " is not a valid directory.")
 		os.Exit(1)
+	} else if err != nil && (*totalsOnly == true || *listDirectories == true) {
+		return 0
 	}
 
 	storage := map[FileList]bool{}
