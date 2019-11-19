@@ -31,7 +31,8 @@ var getversion = flag.Bool("v", false, "Version information")
 var httpServer = flag.Bool("http", false, "Run a http server")
 var port = flag.String("p", "80", "port to bind server to")
 var directory = flag.String("d", ".", "directory of static files for http to serve")
-var listDirectories = flag.Bool("r", false, "directory of static files for http to serve")
+var listDirectories = flag.Bool("r", false, "recursively list directories")
+var totalsOnly = flag.Bool("to", false, "Only show total files, directories and symlinks (recursive only)")
 
 var sizeCheckOnly bool = false
 var defaultSize int64 = 1125899906842620 * 1024
@@ -234,50 +235,52 @@ func ListPath(workingPath string) int64 {
 			storage[*s] = true
 		}
 	}
-	if len(storage) > 0 {
-		fmt.Println("")
-		for i := range storage {
-			if i.isDir == true {
-				size = "<DIR>" + strings.Repeat(" ", largestSize+bonusSpacing)
-			} else if i.symlink == true {
-				size = "<JUNCTION>" + strings.Repeat(" ", largestSize+bonusSpacing-5)
-				link, err := os.Readlink(path.Join(workingPath, i.name))
-				if err != nil {
-					continue
+	if *totalsOnly == false {
+		if len(storage) > 0 {
+			fmt.Println("")
+			for i := range storage {
+				if i.isDir == true {
+					size = "<DIR>" + strings.Repeat(" ", largestSize+bonusSpacing)
+				} else if i.symlink == true {
+					size = "<JUNCTION>" + strings.Repeat(" ", largestSize+bonusSpacing-5)
+					link, err := os.Readlink(path.Join(workingPath, i.name))
+					if err != nil {
+						continue
+					}
+					i.name = i.name + " => " + link
+				} else {
+					size = strings.Repeat(" ", largestSize-len(i.size)+len("<DIR>")+bonusSpacing) + i.size
 				}
-				i.name = i.name + " => " + link
-			} else {
-				size = strings.Repeat(" ", largestSize-len(i.size)+len("<DIR>")+bonusSpacing) + i.size
+				if i.highlight == true {
+					printError(i.modTime + "  " + size + "  " + i.name)
+				} else if i.symlink == true {
+					printWarning(i.modTime + "  " + size + "  " + i.name)
+				} else {
+					fmt.Println(i.modTime + "  " + size + "  " + i.name)
+				}
 			}
-			if i.highlight == true {
-				printError(i.modTime + "  " + size + "  " + i.name)
-			} else if i.symlink == true {
-				printWarning(i.modTime + "  " + size + "  " + i.name)
-			} else {
-				fmt.Println(i.modTime + "  " + size + "  " + i.name)
+			fmt.Println("")
+			pathString := strings.Repeat(" ", 14) + "Path\t" + workingPath
+			if len(workingPathTarget) > 0 {
+				pathString = pathString + " => " + workingPathTarget
 			}
-		}
-		fmt.Println("")
-		pathString := strings.Repeat(" ", 14) + "Path\t" + workingPath
-		if len(workingPathTarget) > 0 {
-			pathString = pathString + " => " + workingPathTarget
-		}
-		fmt.Println(pathString)
-		if totalDirs > 0 {
-			fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalDirs) + " Dir(s)")
-		}
-		if totalLinks > 0 {
-			fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalLinks) + " Symlink(s)")
-		}
-		if totalFiles > 0 {
-			fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalFiles) + " File(s)\t\t" + SizeCommaed(totalSize) + " bytes")
-		}
-	} else {
-		fmt.Println("")
-		printWarning("No files or folders found")
-		fmt.Println("      Path:\t" + workingPath)
-		if *textSearch != "" {
-			fmt.Println("    Search:\t" + *textSearch)
+			fmt.Println(pathString)
+			if totalDirs > 0 {
+				fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalDirs) + " Dir(s)")
+			}
+			if totalLinks > 0 {
+				fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalLinks) + " Symlink(s)")
+			}
+			if totalFiles > 0 {
+				fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalFiles) + " File(s)\t\t" + SizeCommaed(totalSize) + " bytes")
+			}
+		} else {
+			fmt.Println("")
+			printWarning("No files or folders found")
+			fmt.Println("      Path:\t" + workingPath)
+			if *textSearch != "" {
+				fmt.Println("    Search:\t" + *textSearch)
+			}
 		}
 	}
 	return totalSize
