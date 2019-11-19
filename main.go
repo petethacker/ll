@@ -15,7 +15,7 @@ import (
 	ct "github.com/daviddengcn/go-colortext"
 )
 
-var version float32 = 0.2
+var version float32 = 0.3
 
 // arguments
 var help = flag.Bool("h", false, "Show help, see -h")
@@ -30,12 +30,18 @@ var sizeCheckListOnly = flag.String("fso", "", "Only show files larger than x")
 var getversion = flag.Bool("v", false, "Version information")
 var httpServer = flag.Bool("http", false, "Run a http server")
 var port = flag.String("p", "80", "port to bind server to")
-var directory = flag.String("d", ".", "directory of static files to serve")
+var directory = flag.String("d", ".", "directory of static files for http to serve")
+var listDirectories = flag.Bool("r", false, "directory of static files for http to serve")
 
 var sizeCheckOnly bool = false
 var defaultSize int64 = 1125899906842620 * 1024
 var sizeCheckBytes int64 = defaultSize
 var sizeCheckBytesHighlight int64 = defaultSize
+
+var allFiles int64 = 0
+var allDirectories int64 = 0
+var allSymlinks int64 = 0
+var allFilesSize int64 = 0
 
 func print(value ...interface{}) {
 	formatted_line := fmt.Sprintf(value[0].(string), value[1:len(value)]...)
@@ -180,6 +186,9 @@ func ListPath(workingPath string) int64 {
 				if *excludeDirectories == true {
 					continue
 				}
+				if *listDirectories == true {
+					ListPath(path.Join(workingPath, f.Name()))
+				}
 			} else {
 				if SymlinkCheck(path.Join(workingPath, f.Name())) == true && *excludeSymlinks == true {
 					continue
@@ -190,6 +199,7 @@ func ListPath(workingPath string) int64 {
 			s := new(FileList)
 			s.name = f.Name()
 			s.size = SizeCommaed(f.Size())
+			allFilesSize += f.Size()
 			// check if the file is over the specified size for highlighting
 			if int64(f.Size()) >= sizeCheckBytes {
 				s.aboveSize = true
@@ -209,14 +219,17 @@ func ListPath(workingPath string) int64 {
 			s.isDir = f.IsDir()
 			if s.isDir == true {
 				totalDirs += 1
+				allDirectories += 1
 			} else if f.Size() == 0 {
 				if SymlinkCheck(path.Join(workingPath, f.Name())) == true {
 					s.symlink = true
 					totalLinks += 1
+					allSymlinks += 1
 					bonusSpacing = 7
 				}
 			} else {
 				totalFiles += 1
+				allFiles += 1
 			}
 			storage[*s] = true
 		}
@@ -426,5 +439,19 @@ func main() {
 	// finally we list the path
 	if DoesPathExist(workingPath) == true {
 		ListPath(workingPath)
+	}
+
+	// if we are listing all directories, lets print out the totals
+	if *listDirectories == true {
+		printWarning("\n" + strings.Repeat(" ", 14) + "Total")
+		if allDirectories > 0 {
+			printWarning(strings.Repeat(" ", 14) + strconv.FormatInt(allDirectories, 10) + " Dir(s)")
+		}
+		if allSymlinks > 0 {
+			printWarning(strings.Repeat(" ", 14) + strconv.FormatInt(allSymlinks, 10) + " Symlink(s)")
+		}
+		if allFiles > 0 {
+			printWarning(strings.Repeat(" ", 14) + strconv.FormatInt(allFiles, 10) + " File(s)\t\t" + SizeCommaed(allFilesSize) + " bytes")
+		}
 	}
 }
