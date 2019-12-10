@@ -9,13 +9,14 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 
 	ct "github.com/daviddengcn/go-colortext"
 )
 
-var version float32 = 0.3
+var version float32 = 0.4
 
 // arguments
 var help = flag.Bool("h", false, "Show help, see -h")
@@ -77,7 +78,7 @@ func printError(value ...interface{}) {
 	ct.ResetColor()
 }
 
-type FileList struct {
+type FileInfo struct {
 	name      string
 	size      string
 	modTime   string
@@ -182,7 +183,8 @@ func ListPath(workingPath string) int64 {
 		return 0
 	}
 
-	storage := map[FileList]bool{}
+	storage := map[string]FileInfo{}
+	filekeys := []string{}
 	for _, f := range files {
 		if StringCheck(strings.ToLower(f.Name()), strings.ToLower(*textSearch)) {
 			if f.IsDir() {
@@ -199,7 +201,7 @@ func ListPath(workingPath string) int64 {
 					continue
 				}
 			}
-			s := new(FileList)
+			s := new(FileInfo)
 			s.name = f.Name()
 			s.size = SizeCommaed(f.Size())
 			allFilesSize += f.Size()
@@ -234,13 +236,16 @@ func ListPath(workingPath string) int64 {
 				totalFiles += 1
 				allFiles += 1
 			}
-			storage[*s] = true
+			storage[strings.ToLower(s.name)] = *s
+			filekeys = append(filekeys, strings.ToLower(s.name))
 		}
 	}
 	if *totalsOnly == false {
 		if len(storage) > 0 {
+			sort.Strings(filekeys)
 			fmt.Println("")
-			for i := range storage {
+			for j := range filekeys {
+				i := storage[filekeys[j]]
 				if i.isDir == true {
 					size = "<DIR>" + strings.Repeat(" ", largestSize+bonusSpacing)
 				} else if i.symlink == true {
