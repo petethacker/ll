@@ -186,7 +186,7 @@ func ListPath(workingPath string) int64 {
 	storage := map[string]FileInfo{}
 	filekeys := []string{}
 	for _, f := range files {
-		if StringCheck(strings.ToLower(f.Name()), strings.ToLower(*textSearch)) {
+		if StringCheck(strings.ToLower(f.Name()), strings.ToLower(*textSearch)) || f.IsDir() {
 			if f.IsDir() {
 				if *excludeDirectories == true {
 					continue
