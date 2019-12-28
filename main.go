@@ -5,13 +5,18 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"net/http"
 	"os"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 
 	ct "github.com/daviddengcn/go-colortext"
 )
+
+var version float32 = 0.4
 
 // arguments
 var help = flag.Bool("h", false, "Show help, see -h")
@@ -23,11 +28,22 @@ var excludeSymlinks = flag.Bool("xs", false, "Exclude Symlinks")
 var textSearch = flag.String("f", "", "Text Search")
 var sizeCheck = flag.String("fh", "", "Highlight files larger than x")
 var sizeCheckListOnly = flag.String("fso", "", "Only show files larger than x")
+var getversion = flag.Bool("v", false, "Version information")
+var httpServer = flag.Bool("http", false, "Run a http server")
+var port = flag.String("p", "80", "port to bind server to")
+var directory = flag.String("d", ".", "directory of static files for http to serve")
+var listDirectories = flag.Bool("r", false, "recursively list directories")
+var totalsOnly = flag.Bool("to", false, "Only show total files, directories and symlinks (recursive only)")
 
 var sizeCheckOnly bool = false
-var defaultSize int = 1125899906842620 * 1024
-var sizeCheckBytes int = defaultSize
-var sizeCheckBytesHighlight int = defaultSize
+var defaultSize int64 = 1125899906842620 * 1024
+var sizeCheckBytes int64 = defaultSize
+var sizeCheckBytesHighlight int64 = defaultSize
+
+var allFiles int64 = 0
+var allDirectories int64 = 0
+var allSymlinks int64 = 0
+var allFilesSize int64 = 0
 
 func print(value ...interface{}) {
 	formatted_line := fmt.Sprintf(value[0].(string), value[1:len(value)]...)
@@ -62,7 +78,7 @@ func printError(value ...interface{}) {
 	ct.ResetColor()
 }
 
-type FileList struct {
+type FileInfo struct {
 	name      string
 	size      string
 	modTime   string
@@ -160,17 +176,23 @@ func ListPath(workingPath string) int64 {
 	}
 
 	files, err := ioutil.ReadDir(workingPath)
-	if err != nil {
+	if err != nil && *totalsOnly == false && *listDirectories == false {
 		printWarning(workingPath + " is not a valid directory.")
 		os.Exit(1)
+	} else if err != nil && (*totalsOnly == true || *listDirectories == true) {
+		return 0
 	}
 
-	storage := map[FileList]bool{}
+	storage := map[string]FileInfo{}
+	filekeys := []string{}
 	for _, f := range files {
-		if StringCheck(strings.ToLower(f.Name()), strings.ToLower(*textSearch)) {
+		if StringCheck(strings.ToLower(f.Name()), strings.ToLower(*textSearch)) { //|| f.IsDir() { // not sure why we or'ed this dir check
 			if f.IsDir() {
 				if *excludeDirectories == true {
 					continue
+				}
+				if *listDirectories == true {
+					ListPath(path.Join(workingPath, f.Name()))
 				}
 			} else {
 				if SymlinkCheck(path.Join(workingPath, f.Name())) == true && *excludeSymlinks == true {
@@ -179,17 +201,18 @@ func ListPath(workingPath string) int64 {
 					continue
 				}
 			}
-			s := new(FileList)
+			s := new(FileInfo)
 			s.name = f.Name()
 			s.size = SizeCommaed(f.Size())
+			allFilesSize += f.Size()
 			// check if the file is over the specified size for highlighting
-			if int(f.Size()) >= sizeCheckBytes {
+			if int64(f.Size()) >= sizeCheckBytes {
 				s.aboveSize = true
 			} else if sizeCheckOnly == true {
 				continue
 			}
 			// lets see if we have to highlight the files.
-			if int(f.Size()) >= sizeCheckBytesHighlight {
+			if int64(f.Size()) >= sizeCheckBytesHighlight {
 				s.highlight = true
 			}
 
@@ -201,62 +224,70 @@ func ListPath(workingPath string) int64 {
 			s.isDir = f.IsDir()
 			if s.isDir == true {
 				totalDirs += 1
+				allDirectories += 1
 			} else if f.Size() == 0 {
 				if SymlinkCheck(path.Join(workingPath, f.Name())) == true {
 					s.symlink = true
 					totalLinks += 1
+					allSymlinks += 1
 					bonusSpacing = 7
 				}
 			} else {
 				totalFiles += 1
+				allFiles += 1
 			}
-			storage[*s] = true
+			storage[strings.ToLower(s.name)] = *s
+			filekeys = append(filekeys, strings.ToLower(s.name))
 		}
 	}
-	if len(storage) > 0 {
-		fmt.Println("")
-		for i := range storage {
-			if i.isDir == true {
-				size = "<DIR>" + strings.Repeat(" ", largestSize+bonusSpacing)
-			} else if i.symlink == true {
-				size = "<JUNCTION>" + strings.Repeat(" ", largestSize+bonusSpacing-5)
-				link, err := os.Readlink(path.Join(workingPath, i.name))
-				if err != nil {
-					continue
+	if *totalsOnly == false {
+		if len(storage) > 0 {
+			sort.Strings(filekeys)
+			fmt.Println("")
+			for j := range filekeys {
+				i := storage[filekeys[j]]
+				if i.isDir == true {
+					size = "<DIR>" + strings.Repeat(" ", largestSize+bonusSpacing)
+				} else if i.symlink == true {
+					size = "<JUNCTION>" + strings.Repeat(" ", largestSize+bonusSpacing-5)
+					link, err := os.Readlink(path.Join(workingPath, i.name))
+					if err != nil {
+						continue
+					}
+					i.name = i.name + " => " + link
+				} else {
+					size = strings.Repeat(" ", largestSize-len(i.size)+len("<DIR>")+bonusSpacing) + i.size
 				}
-				i.name = i.name + " => " + link
-			} else {
-				size = strings.Repeat(" ", largestSize-len(i.size)+len("<DIR>")+bonusSpacing) + i.size
+				if i.highlight == true {
+					printError(i.modTime + "  " + size + "  " + i.name)
+				} else if i.symlink == true {
+					printWarning(i.modTime + "  " + size + "  " + i.name)
+				} else {
+					fmt.Println(i.modTime + "  " + size + "  " + i.name)
+				}
 			}
-			if i.highlight == true {
-				printError(i.modTime + "  " + size + "  " + i.name)
-			} else if i.symlink == true {
-				printWarning(i.modTime + "  " + size + "  " + i.name)
-			} else {
-				fmt.Println(i.modTime + "  " + size + "  " + i.name)
+			fmt.Println("")
+			pathString := strings.Repeat(" ", 14) + "Path\t" + workingPath
+			if len(workingPathTarget) > 0 {
+				pathString = pathString + " => " + workingPathTarget
 			}
-		}
-		fmt.Println("")
-		pathString := strings.Repeat(" ", 14) + "Path\t" + workingPath
-		if len(workingPathTarget) > 0 {
-			pathString = pathString + " => " + workingPathTarget
-		}
-		fmt.Println(pathString)
-		if totalDirs > 0 {
-			fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalDirs) + " Dir(s)")
-		}
-		if totalLinks > 0 {
-			fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalLinks) + " Symlink(s)")
-		}
-		if totalFiles > 0 {
-			fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalFiles) + " File(s)\t\t" + SizeCommaed(totalSize) + " bytes")
-		}
-	} else {
-		fmt.Println("")
-		printWarning("No files or folders found")
-		fmt.Println("      Path:\t" + workingPath)
-		if *textSearch != "" {
-			fmt.Println("    Search:\t" + *textSearch)
+			fmt.Println(pathString)
+			if totalDirs > 0 {
+				fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalDirs) + " Dir(s)")
+			}
+			if totalLinks > 0 {
+				fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalLinks) + " Symlink(s)")
+			}
+			if totalFiles > 0 {
+				fmt.Println(strings.Repeat(" ", 14) + strconv.Itoa(totalFiles) + " File(s)\t\t" + SizeCommaed(totalSize) + " bytes")
+			}
+		} else {
+			fmt.Println("")
+			printWarning("No files or folders found")
+			fmt.Println("      Path:\t" + workingPath)
+			if *textSearch != "" {
+				fmt.Println("    Search:\t" + *textSearch)
+			}
 		}
 	}
 	return totalSize
@@ -273,51 +304,51 @@ func DoesPathExist(workingPath string) bool {
 	return false
 }
 
-func processSizeCheck(sizeCheckString string) int {
-	var newSizeCheck int = sizeCheckBytes
+func processSizeCheck(sizeCheckString string) int64 {
+	var newSizeCheck int64 = sizeCheckBytes
 	if strings.HasSuffix(strings.ToLower(sizeCheckString), "kb") {
 		// 1024
 		if strings.ToLower(sizeCheckString) == "kb" {
-			newSizeCheck = 1024
+			newSizeCheck = int64(1024)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = tempSize * 1024
+			newSizeCheck = int64(tempSize) * int64(1024)
 		}
 	} else if strings.HasSuffix(strings.ToLower(sizeCheckString), "mb") {
 		// 1048576
 		if strings.ToLower(sizeCheckString) == "mb" {
-			newSizeCheck = 1048576
+			newSizeCheck = int64(1048576)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = tempSize * 1048576
+			newSizeCheck = int64(tempSize) * int64(1048576)
 		}
 	} else if strings.HasSuffix(strings.ToLower(sizeCheckString), "gb") {
 		// 1073741824
 		if strings.ToLower(sizeCheckString) == "gb" {
-			newSizeCheck = 1073741824
+			newSizeCheck = int64(1073741824)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = tempSize * 1073741824
+			newSizeCheck = int64(tempSize) * int64(1073741824)
 		}
 	} else if strings.HasSuffix(strings.ToLower(sizeCheckString), "tb") {
 		// 1099511627776
 		if strings.ToLower(sizeCheckString) == "tb" {
-			newSizeCheck = 1099511627776
+			newSizeCheck = int64(1099511627776)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = tempSize * 1099511627776
+			newSizeCheck = int64(tempSize) * int64(1099511627776)
 		}
 	} else if strings.HasSuffix(strings.ToLower(sizeCheckString), "pb") {
 		// 1125899906842620
 		if strings.ToLower(sizeCheckString) == "pb" {
-			newSizeCheck = 1125899906842620
+			newSizeCheck = int64(1125899906842620)
 		} else {
 			tempSize, _ := strconv.Atoi(sizeCheckString[:len(sizeCheckString)-2])
-			newSizeCheck = tempSize * 1125899906842620
+			newSizeCheck = int64(tempSize) * int64(1125899906842620)
 		}
 	} else {
 		tempSize, _ := strconv.Atoi(sizeCheckString)
-		newSizeCheck = tempSize * 1
+		newSizeCheck = int64(tempSize * 1)
 	}
 	return newSizeCheck
 }
@@ -336,11 +367,23 @@ func RemoveArgs() []string {
 	return newArgs
 }
 
+func HttpServer() {
+	http.Handle("/", http.FileServer(http.Dir(*directory)))
+
+	log.Printf("Serving %s on HTTP port: %s\n", *directory, *port)
+	log.Fatal(http.ListenAndServe(":"+*port, nil))
+}
+
 func main() {
 	flag.Parse()
 
 	if *help == true {
 		HelpOutput()
+		os.Exit(0)
+	}
+
+	if *httpServer == true {
+		HttpServer()
 		os.Exit(0)
 	}
 
@@ -351,6 +394,11 @@ func main() {
 
 	if *todoList == true {
 		todo()
+		os.Exit(0)
+	}
+
+	if *getversion == true {
+		print("Version: %.1f", version)
 		os.Exit(0)
 	}
 
@@ -401,5 +449,19 @@ func main() {
 	// finally we list the path
 	if DoesPathExist(workingPath) == true {
 		ListPath(workingPath)
+	}
+
+	// if we are listing all directories, lets print out the totals
+	if *listDirectories == true {
+		printWarning("\n" + strings.Repeat(" ", 14) + "Total")
+		if allDirectories > 0 {
+			printWarning(strings.Repeat(" ", 14) + strconv.FormatInt(allDirectories, 10) + " Dir(s)")
+		}
+		if allSymlinks > 0 {
+			printWarning(strings.Repeat(" ", 14) + strconv.FormatInt(allSymlinks, 10) + " Symlink(s)")
+		}
+		if allFiles > 0 {
+			printWarning(strings.Repeat(" ", 14) + strconv.FormatInt(allFiles, 10) + " File(s)\t\t" + SizeCommaed(allFilesSize) + " bytes")
+		}
 	}
 }

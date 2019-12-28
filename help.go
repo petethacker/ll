@@ -19,7 +19,8 @@ func HelpOutput() {
 	print("                 kb, mb, gb, tb, pb accepted.")
 	print("  -fso <size>kb : Show only files above -fso <size>")
 	print("                 kb, mb, gb, tb, pb accepted.")
-	print("                 will not highlight, exclude directories and exclude symlinks")
+	print("                 will not highlight, will exclude directories and will exclude symlinks")
 	print("")
 	print("  -h  : Help menu")
+	print("  -v  : Show Version")
 }
