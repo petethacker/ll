@@ -6,7 +6,7 @@ set GOARCH=amd64
 
 pushd "%~dp0"
 
-go build -o c:\bin\apps\ll.exe
+go build -o c:\bin\apps\ll.exe -ldflags="-s -w"
 if %errorlevel% neq 0 (
     popd
     exit /b %errorlevel%
